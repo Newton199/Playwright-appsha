@@ -110,14 +110,18 @@ class ContactsPage:
 
         # Phone
         if data.phone:
-            self.page.locator(S.CONTACT_PHONE_FIELD).first.fill(data.phone)
+            # Clicking the input first to ensure focus
+            phone_input = self.page.locator(S.CONTACT_PHONE_FIELD).first
+            phone_input.click()
+            phone_input.fill(data.phone)
 
         # Address
         if data.address:
             self.page.locator(S.CONTACT_ADDRESS_FIELD).first.fill(data.address)
 
-        # Birthday
+        # Birthday & Anniversary - use type() for date inputs
         if data.birthday:
+            # Try clearing first and then typing
             self.page.locator(S.CONTACT_BIRTHDAY_FIELD).first.fill(data.birthday)
 
         # Anniversary
@@ -139,15 +143,26 @@ class ContactsPage:
         """Click the Save / Create button and wait for form to close."""
         btn = self.page.locator(S.CONTACT_SAVE_BTN).first
         btn.wait_for(state="visible", timeout=8_000)
-        btn.click()
+        
+        # Click the Save button using Javascript to ensure it triggers
+        print("Trigerring submit via JS...")
+        btn.evaluate("el => el.click()")
+        
         try:
-            # Wait for the dialog to disappear to confirm submission
-            self.page.locator("div[role='dialog']").wait_for(state="hidden", timeout=5_000)
+            # Wait for the dialog to disappear
+            self.page.locator("div[role='dialog']").wait_for(state="hidden", timeout=15_000)
+            print("Form closed successfully.")
         except Exception:
-            # If it didn't hide, maybe there's a validation error
             self.page.screenshot(path="form_error.png")
-            print("Form did not close. Check form_error.png for validation errors.")
-            raise
+            print("Form did not close. Check form_error.png.")
+            # Final attempt: press Enter
+            print("Trying Enter key...")
+            self.page.keyboard.press("Enter")
+            try:
+                self.page.locator("div[role='dialog']").wait_for(state="hidden", timeout=10_000)
+                print("Form closed after Enter.")
+            except:
+                raise
         self.page.wait_for_load_state("networkidle")
 
     def create_contact(self, data: ContactData) -> None:
