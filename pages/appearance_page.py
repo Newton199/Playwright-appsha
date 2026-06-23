@@ -46,10 +46,15 @@ class AppearancePage:
     # ------------------------------------------------------------------
 
     def navigate(self) -> None:
-        """Navigate directly to the appearance URL and wait for load."""
-        self.page.goto(APPEARANCE_URL)
-        self.page.wait_for_load_state("domcontentloaded")
-        self.page.wait_for_url("**/appearance", timeout=15_000)
+        """Go directly to the appearance URL if not already there."""
+        if "/appearance" not in self.page.url:
+            self.page.goto(APPEARANCE_URL, wait_until="networkidle")
+            self.page.wait_for_url("**/appearance", timeout=15_000)
+        
+        # Ensure theme cards are visible
+        self.page.locator(S.APPEARANCE_THEME_CARDS).first.wait_for(
+            state="visible", timeout=10_000
+        )
 
     def navigate_via_tab(self) -> None:
         """Click the Appearance tab in the profile tab bar (already on profile page)."""

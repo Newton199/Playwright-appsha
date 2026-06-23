@@ -1,24 +1,5 @@
 """
 ContactsPage — page object for the Appsha profile contacts section.
-
-URL pattern: https://staging.appsha.com/u/profiles/{profile_id}/contacts
-
-Covers:
-  - CREATE  : open Add Contact sheet, fill all fields, submit, assert row appears
-  - READ    : count rows, find by name, search/filter
-  - UPDATE  : open edit sheet on a row, change fields, submit, assert updated row
-  - DELETE  : click delete on a row, confirm dialog, assert row gone
-  - FILTER  : open the filter panel, interact with tag dropdown + column toggles,
-              apply and assert table response
-  - PAGINATE: navigate forward/backward through pages, assert row presence
-
-The Add Contact button selector is derived from the exact CSS provided:
-  #radix-*r_47*-content-overview > ... > button.bg-primary  (primary blue CTA)
-
-The Filter button is the adjacent border/white button.
-The filter panel is the Radix popover that uses an id ending in 'f'.
-
-No time.sleep() — all waits use Playwright APIs.
 """
 
 from __future__ import annotations
@@ -60,14 +41,12 @@ class ContactsPage:
     def navigate(self) -> None:
         """Go directly to the contacts URL if not already there."""
         if CONTACTS_URL not in self.page.url:
-            self.page.goto(CONTACTS_URL)
-            self.page.wait_for_load_state("domcontentloaded")
+            self.page.goto(CONTACTS_URL, wait_until="networkidle")
             self.page.wait_for_url("**/contacts", timeout=15_000)
         
-        # Ensure toolbar is present
-        self.page.locator(S.CONTACT_TOOLBAR).first.wait_for(
-            state="visible", timeout=15_000
-        )
+        # Ensure toolbar is present and visible
+        toolbar = self.page.locator(S.CONTACT_TOOLBAR).first
+        toolbar.wait_for(state="visible", timeout=15_000)
 
     def navigate_via_tab(self) -> None:
         """Click the Contacts tab inside the profile tab bar."""
@@ -75,7 +54,7 @@ class ContactsPage:
         tab.wait_for(state="visible", timeout=10_000)
         tab.click()
         self.page.wait_for_url("**/contacts", timeout=15_000)
-        self.page.wait_for_load_state("domcontentloaded")
+        self.page.wait_for_load_state("networkidle")
 
     # ------------------------------------------------------------------ #
     # Low-level locators                                                   #
@@ -93,10 +72,6 @@ class ContactsPage:
         """All data rows in the contacts table (excludes header)."""
         return self.page.locator(S.CONTACT_LIST_ROWS)
 
-    # ------------------------------------------------------------------ #
-    # CREATE                                                               #
-    # ------------------------------------------------------------------ #
-
     def _wait_for_loading_dismiss(self) -> None:
         """Wait for the '#Loading...' text/shimmer to disappear if present."""
         try:
@@ -106,13 +81,18 @@ class ContactsPage:
         except Exception:
             pass
 
+    # ------------------------------------------------------------------ #
+    # CREATE                                                               #
+    # ------------------------------------------------------------------ #
+
     def open_add_form(self) -> None:
         """
         Click the Add Contact button.
         """
         btn = self._add_btn()
+        btn.scroll_into_view_if_needed()
         btn.wait_for(state="visible", timeout=10_000)
-        btn.click()
+        btn.click(force=True)
         # The name field is inside a Radix Sheet
         name_loc = self.page.locator(S.CONTACT_NAME_FIELD).first
         name_loc.wait_for(state="visible", timeout=15_000)
@@ -156,10 +136,18 @@ class ContactsPage:
                 self.page.keyboard.press("Enter")
 
     def submit_form(self) -> None:
-        """Click the Save / Create button and wait for network to settle."""
+        """Click the Save / Create button and wait for form to close."""
         btn = self.page.locator(S.CONTACT_SAVE_BTN).first
         btn.wait_for(state="visible", timeout=8_000)
         btn.click()
+        try:
+            # Wait for the dialog to disappear to confirm submission
+            self.page.locator("div[role='dialog']").wait_for(state="hidden", timeout=5_000)
+        except Exception:
+            # If it didn't hide, maybe there's a validation error
+            self.page.screenshot(path="form_error.png")
+            print("Form did not close. Check form_error.png for validation errors.")
+            raise
         self.page.wait_for_load_state("networkidle")
 
     def create_contact(self, data: ContactData) -> None:
@@ -203,9 +191,6 @@ class ContactsPage:
     def search(self, query: str) -> None:
         """
         Type into the search box.
-        The search input uses placeholder 'Search by name, email, notes' and
-        may be visually hidden (opacity 0 or off-screen) until interacted with.
-        Uses fill with force=True to interact regardless of CSS visibility.
         """
         field = self.page.locator(S.CONTACT_SEARCH_FIELD).first
         field.wait_for(state="attached", timeout=8_000)
@@ -226,21 +211,18 @@ class ContactsPage:
     def open_edit_form(self, name: str) -> None:
         """
         Open the edit sheet for the contact named *name*.
-        Tries the edit button inside the row; falls back to a global edit button.
         """
         row = self.find_row(name)
         row.wait_for(state="visible", timeout=10_000)
 
         edit_btn = row.locator(S.CONTACT_EDIT_BTN).first
         if not edit_btn.is_visible():
-            # Some UIs open on row click
             row.click()
 
         edit_btn = row.locator(S.CONTACT_EDIT_BTN).first
         if edit_btn.is_visible():
             edit_btn.click()
 
-        # Wait for the name field in the edit sheet
         self.page.locator(S.CONTACT_NAME_FIELD).first.wait_for(
             state="visible", timeout=10_000
         )
@@ -258,7 +240,6 @@ class ContactsPage:
     def delete_contact(self, name: str) -> None:
         """
         Delete the contact row matching *name*.
-        Clicks the delete button on the row, then confirms if a dialog appears.
         """
         row = self.find_row(name)
         row.wait_for(state="visible", timeout=10_000)
@@ -280,14 +261,11 @@ class ContactsPage:
 
     def open_filter_panel(self) -> None:
         """
-        Click the filter button (border/white button, second button in the toolbar).
-        Selector: [id^='radix-'][id*='-content-overview'] ... button.border.border-input.bg-white
-        Waits for the Radix popover panel to become attached.
+        Click the filter button.
         """
         btn = self._filter_btn()
         btn.wait_for(state="visible", timeout=10_000)
         btn.click()
-        # The filter panel is a Radix popover — wait for it to open
         self.page.locator(S.CONTACT_FILTER_PANEL).first.wait_for(
             state="visible", timeout=8_000
         )
@@ -295,13 +273,11 @@ class ContactsPage:
     def filter_by_tag(self, tag: str) -> None:
         """
         Open the tag dropdown inside the filter panel and select *tag*.
-        Closes the dropdown after selection.
         """
         trigger = self.page.locator(S.CONTACT_FILTER_TAGS_TRIGGER).first
         trigger.wait_for(state="visible", timeout=8_000)
         trigger.click()
 
-        # Tag option in the dropdown list
         tag_option = self.page.locator(
             f"[role='option']:has-text('{tag}'), "
             f"[role='listitem']:has-text('{tag}'), "
@@ -309,8 +285,6 @@ class ContactsPage:
         ).first
         tag_option.wait_for(state="visible", timeout=6_000)
         tag_option.click()
-
-        # Close dropdown by pressing Escape or clicking away
         self.page.keyboard.press("Escape")
 
     def deselect_tag(self, tag: str) -> None:
@@ -337,19 +311,18 @@ class ContactsPage:
             checkboxes[index].click()
 
     def apply_filters(self) -> None:
-        """Click Apply / Done inside the filter panel and wait for the table to update."""
+        """Click Apply / Done inside the filter panel."""
         apply_btn = self.page.locator(S.CONTACT_FILTER_APPLY).first
         if apply_btn.is_visible():
             apply_btn.click()
         else:
-            # Some filter panels close on Escape / click-away
             self.page.keyboard.press("Escape")
         self.page.wait_for_load_state("networkidle")
 
     def close_filter_panel(self) -> None:
         """Dismiss the filter panel by pressing Escape."""
         self.page.keyboard.press("Escape")
-        self.page.wait_for_load_state("domcontentloaded")
+        self.page.wait_for_load_state("networkidle")
 
     # ------------------------------------------------------------------ #
     # PAGINATION                                                           #
@@ -380,7 +353,7 @@ class ContactsPage:
         self.page.wait_for_load_state("networkidle")
 
     def pagination_info_text(self) -> str:
-        """Return the pagination info text (e.g. '1-10 of 42') if present."""
+        """Return the pagination info text if present."""
         info = self.page.locator(S.CONTACT_PAGINATION_INFO).first
         return info.inner_text() if info.is_visible() else ""
 

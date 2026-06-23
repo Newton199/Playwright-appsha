@@ -112,27 +112,17 @@ CONTACT_COLUMN_CHECKBOX = "button[role='checkbox']"
 CONTACT_FILTER_APPLY = "button:has-text('Apply'), button:has-text('Done')"
 
 # Contact form fields
-CONTACT_NAME_FIELD  = "input[placeholder*='Name']"
-CONTACT_EMAIL_FIELD = "input[name='email'], #email"
+CONTACT_NAME_FIELD  = "input[placeholder='Name']"
+CONTACT_EMAIL_FIELD = "input[placeholder='Email']"
 CONTACT_PHONE_FIELD = "input[type='tel']"
-CONTACT_ADDRESS_FIELD = "input[name='address'], #address"
-CONTACT_NOTE_FIELD  = "textarea[name='notes'], #notes"
-CONTACT_TAG_FIELD   = "[id^='react-select-']"
+CONTACT_ADDRESS_FIELD = "input[placeholder='Address']"
+CONTACT_NOTE_FIELD  = "textarea[placeholder='Notes']"
+CONTACT_TAG_FIELD   = "input[id^='react-select-']"
 CONTACT_BIRTHDAY_FIELD = "#birthday"
 CONTACT_ANNIVERSARY_FIELD = "#anniversary"
-CONTACT_ANNIVERSARY_FIELD = "#anniversary"
-CONTACT_TAG_FIELD   = "input[name='tags'], input[placeholder*='Tag'], [aria-label*='tag']"
 
 # Submit / Save inside contact form
-CONTACT_SAVE_BTN = (
-    "button[type='submit']:has-text('Save'), "
-    "button:has-text('Save Contact'), "
-    "button:has-text('Add Contact'), "
-    "button:has-text('Create'), "
-    "[data-testid='save-contact'], "
-    "form button[type='submit'], "
-    "button:has-text('Add')"
-)
+CONTACT_SAVE_BTN = "form button[type='submit'], button:has-text('Save'), button:has-text('Add')"
 
 # Contact table rows (tbody rows, skip header)
 CONTACT_LIST_ROWS = "tbody tr, [role='row']:not([role='columnheader']):not(:has([role='columnheader']))"
