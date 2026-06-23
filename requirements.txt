@@ -1,0 +1,5 @@
+playwright>=1.46.0
+pytest==8.2.2
+pytest-playwright>=0.5.0
+python-dotenv==1.0.1
+hypothesis==6.103.1
