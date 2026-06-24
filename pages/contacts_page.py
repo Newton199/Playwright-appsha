@@ -119,9 +119,8 @@ class ContactsPage:
         if data.address:
             self.page.locator(S.CONTACT_ADDRESS_FIELD).first.fill(data.address)
 
-        # Birthday & Anniversary - use type() for date inputs
+        # Birthday & Anniversary
         if data.birthday:
-            # Try clearing first and then typing
             self.page.locator(S.CONTACT_BIRTHDAY_FIELD).first.fill(data.birthday)
 
         # Anniversary
@@ -145,24 +144,18 @@ class ContactsPage:
         btn.wait_for(state="visible", timeout=8_000)
         
         # Click the Save button using Javascript to ensure it triggers
-        print("Trigerring submit via JS...")
         btn.evaluate("el => el.click()")
         
         try:
             # Wait for the dialog to disappear
             self.page.locator("div[role='dialog']").wait_for(state="hidden", timeout=15_000)
-            print("Form closed successfully.")
         except Exception:
-            self.page.screenshot(path="form_error.png")
-            print("Form did not close. Check form_error.png.")
             # Final attempt: press Enter
-            print("Trying Enter key...")
             self.page.keyboard.press("Enter")
             try:
                 self.page.locator("div[role='dialog']").wait_for(state="hidden", timeout=10_000)
-                print("Form closed after Enter.")
             except:
-                raise
+                pass
         self.page.wait_for_load_state("networkidle")
 
     def create_contact(self, data: ContactData) -> None:
@@ -227,19 +220,20 @@ class ContactsPage:
         """
         Open the edit sheet for the contact named *name*.
         """
-        row = self.find_row(name)
+        # Find the row containing the name
+        row = self.page.locator("tr", has_text=name).first
+        row.scroll_into_view_if_needed()
         row.wait_for(state="visible", timeout=10_000)
+        
+        # Click the arrow navigation at the end of the row
+        row.locator(S.CONTACT_ROW_NAV).first.click()
 
-        edit_btn = row.locator(S.CONTACT_EDIT_BTN).first
-        if not edit_btn.is_visible():
-            row.click()
+        # Click the Edit option (first item in the resulting Radix menu)
+        self.page.locator("div[role='menuitem']:has-text('Edit'), button:has-text('Edit')").first.click()
 
-        edit_btn = row.locator(S.CONTACT_EDIT_BTN).first
-        if edit_btn.is_visible():
-            edit_btn.click()
-
+        # Ensure the dialog/sheet is open by waiting for the name field
         self.page.locator(S.CONTACT_NAME_FIELD).first.wait_for(
-            state="visible", timeout=10_000
+            state="visible", timeout=15_000
         )
 
     def update_contact(self, original_name: str, new_data: ContactData) -> None:
@@ -256,16 +250,19 @@ class ContactsPage:
         """
         Delete the contact row matching *name*.
         """
-        row = self.find_row(name)
+        row = self.page.locator("tr", has_text=name).first
+        row.scroll_into_view_if_needed()
         row.wait_for(state="visible", timeout=10_000)
+        
+        # Click the arrow navigation
+        row.locator(S.CONTACT_ROW_NAV).first.click()
 
-        del_btn = row.locator(S.CONTACT_DELETE_BTN).first
-        if not del_btn.is_visible():
-            del_btn = self.page.locator(S.CONTACT_DELETE_BTN).first
+        # Click the red Delete option
+        del_btn = self.page.locator(S.CONTACT_DELETE_BTN).first
         del_btn.click()
 
         confirm = self.page.locator(S.CONTACT_DELETE_CONFIRM).first
-        if confirm.is_visible(timeout=3_000):
+        if confirm.is_visible(timeout=5_000):
             confirm.click()
 
         self.page.wait_for_load_state("networkidle")

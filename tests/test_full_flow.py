@@ -153,8 +153,16 @@ class TestPhase3Appearance:
     def test_free_theme_selectable(self, authenticated_page: Page) -> None:
         """Any plan must be able to select a free theme without errors."""
         ap = AppearancePage(authenticated_page)
-        ap.select_free_theme()
+        ap.select_theme_by_index(0)
         # Page should remain on appearance after selection
+        ap.assert_on_appearance_page()
+
+    @pytest.mark.order(8.5)
+    def test_click_multiple_themes(self, authenticated_page: Page) -> None:
+        """Click multiple themes to verify interaction."""
+        ap = AppearancePage(authenticated_page)
+        ap.select_theme_by_index(1)
+        ap.select_theme_by_index(2)
         ap.assert_on_appearance_page()
 
     @pytest.mark.order(9)

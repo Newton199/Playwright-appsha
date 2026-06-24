@@ -40,30 +40,31 @@ ADD_LINK_BTN = "#links a:has(img), #links [href*='add-link'] img, a[href*='add-l
 # Add-link feature cards
 # ---------------------------------------------------------------------------
 FEATURE_SELECTORS: dict[str, str] = {
-    "normal_link":   "div.flex.flex-col.gap-1:has-text('Link')",
-    "embed_link":    "div.flex.flex-col.gap-1:has-text('HTML Embed')",
-    "attachment":    "div.flex.flex-col.gap-1:has-text('Attachment')",
-    "external_shop": "div.flex.flex-col.gap-1:has-text('External Shop')",
-    "highlight":     "div.flex.flex-col.gap-1:has-text('Highlight')",
-    "analytics":     "div.flex.flex-col.gap-1:has-text('Analytics')",
+    "normal_link":   "text='Link'",
+    "embed_link":    "text='HTML Embed'",
+    "attachment":    "text='Attachment'",
+    "external_shop": "text='External Shop'",
+    "highlight":     "text='Highlight'",
+    "analytics":     "text='Analytics'",
 }
 
 UPGRADE_PROMPT_SELECTORS: dict[str, str] = {
-    "normal_link":   "div:has(> div.flex.flex-col.gap-1:has-text('Link')) span:has-text('Pro')",
-    "embed_link":    "div:has(> div.flex.flex-col.gap-1:has-text('HTML Embed')) span:has-text('Pro')",
-    "attachment":    "div:has(> div.flex.flex-col.gap-1:has-text('Attachment')) span:has-text('Pro')",
-    "external_shop": "div:has(> div.flex.flex-col.gap-1:has-text('External Shop')) span:has-text('Pro')",
-    "highlight":     "div:has(> div.flex.flex-col.gap-1:has-text('Highlight')) span:has-text('Pro')",
-    "analytics":     "div:has(> div.flex.flex-col.gap-1:has-text('Analytics')) span:has-text('Pro')",
+    "normal_link":   "button:has(span:text-is('Link ')) span:has-text('Pro'), button:has(span:text-is('Link ')) svg.lucide-lock",
+    "embed_link":    "button:has(span:text-is('HTML Embed')) span:has-text('Pro'), button:has(span:text-is('HTML Embed')) svg.lucide-lock",
+    "attachment":    "button:has(span:text-is('Attachment')) span:has-text('Pro'), button:has(span:text-is('Attachment')) svg.lucide-lock",
+    "external_shop": "button:has(span:text-is('External Shop')) span:has-text('Pro'), button:has(span:text-is('External Shop')) svg.lucide-lock",
+    "highlight":     "button:has(span:text-is('Highlight')) span:has-text('Pro'), button:has(span:text-is('Highlight')) svg.lucide-lock",
+    "analytics":     "button:has(span:text-is('Analytics')) span:has-text('Pro'), button:has(span:text-is('Analytics')) svg.lucide-lock",
 }
+
 
 # ---------------------------------------------------------------------------
 # Appearance page  (https://staging.appsha.com/u/profiles/{id}/appearance)
 # ---------------------------------------------------------------------------
 
-# Theme grid — each theme card has a radio input or clickable tile
-APPEARANCE_THEME_CARDS   = "[data-testid='theme-card'], .theme-card, [aria-label*='theme'], label:has(input[name*='theme'])"
-APPEARANCE_THEME_RADIO   = "input[name*='theme'], input[type='radio'][value*='theme']"
+# Theme grid — each theme card is a div with @username
+APPEARANCE_THEME_CARDS   = "div.cursor-pointer:has(p:has-text('@username'))"
+APPEARANCE_THEME_CHECK   = "svg.lucide-circle-check"
 
 # Free themes — available to all plans (select-only, no customisation)
 APPEARANCE_FREE_THEME    = "label:has-text('Default'), label:has-text('Classic'), [data-theme='default'], [data-theme='classic']"
@@ -112,11 +113,11 @@ CONTACT_COLUMN_CHECKBOX = "button[role='checkbox']"
 CONTACT_FILTER_APPLY = "button:has-text('Apply'), button:has-text('Done')"
 
 # Contact form fields
-CONTACT_NAME_FIELD  = "input[placeholder='Name']"
-CONTACT_EMAIL_FIELD = "input[placeholder='Email']"
+CONTACT_NAME_FIELD  = "input[placeholder='Name'], input[name='name'], [id$='-form-item'] input"
+CONTACT_EMAIL_FIELD = "input[placeholder='Email'], input[name='email']"
 CONTACT_PHONE_FIELD = "input[type='tel']"
-CONTACT_ADDRESS_FIELD = "input[placeholder='Address']"
-CONTACT_NOTE_FIELD  = "textarea[placeholder='Notes']"
+CONTACT_ADDRESS_FIELD = "input[placeholder='Address'], input[name='address']"
+CONTACT_NOTE_FIELD  = "textarea[placeholder='Notes'], textarea[name='notes']"
 CONTACT_TAG_FIELD   = "input[id^='react-select-']"
 CONTACT_BIRTHDAY_FIELD = "#birthday"
 CONTACT_ANNIVERSARY_FIELD = "#anniversary"
@@ -128,10 +129,11 @@ CONTACT_SAVE_BTN = "form button[type='submit'], button:has-text('Save'), button:
 CONTACT_LIST_ROWS = "tbody tr, [role='row']:not([role='columnheader']):not(:has([role='columnheader']))"
 
 # Edit / view button on a contact row (three-dot menu or explicit Edit btn)
-CONTACT_EDIT_BTN   = "button[aria-label*='edit'], button:has-text('Edit'), [data-testid='edit-contact'], button[aria-label*='options']"
+CONTACT_EDIT_BTN   = "div[role='menuitem']:nth-child(1), button:has-text('Edit')"
+CONTACT_ROW_NAV    = "td:last-child svg, .lucide-chevron-right, [id^='radix-'] svg"
 
 # Delete button on a contact row or in the row's action menu
-CONTACT_DELETE_BTN = "button[aria-label*='delete'], button:has-text('Delete'), button:has-text('Remove'), [data-testid='delete-contact']"
+CONTACT_DELETE_BTN = "div.text-\\[\\#FF0000\\], div[role='menuitem']:has-text('Delete'), [data-testid='delete-contact']"
 
 # Confirm delete dialog
 CONTACT_DELETE_CONFIRM = (

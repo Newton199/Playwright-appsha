@@ -31,12 +31,15 @@ class AddLinkPage:
 
     def is_feature_visible(self, feature: str) -> bool:
         """Return True if the feature element is visible on the page."""
-        return self.page.locator(FEATURE_SELECTORS[feature]).first.is_visible()
+        loc = self.page.locator(FEATURE_SELECTORS[feature]).first
+        try:
+            loc.wait_for(state="visible", timeout=3000)
+            return True
+        except:
+            return False
 
     def is_feature_enabled(self, feature: str) -> bool:
         """Return True if the feature element is enabled (interactable).
-
-        Returns False immediately if the element is not visible.
         """
         if not self.is_feature_visible(feature):
             return False

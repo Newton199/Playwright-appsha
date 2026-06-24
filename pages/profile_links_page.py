@@ -21,9 +21,11 @@ class ProfileLinksPage:
 
     def click_links_tab(self) -> None:
         """Wait for the Links tab to be visible, click it, and wait for the DOM."""
-        self.page.locator(LINKS_TAB).wait_for(state="visible")
-        self.page.locator(LINKS_TAB).click()
-        self.page.wait_for_load_state("domcontentloaded")
+        tab = self.page.locator(LINKS_TAB).first
+        tab.wait_for(state="attached", timeout=10_000)
+        tab.scroll_into_view_if_needed()
+        tab.click(force=True)
+        self.page.wait_for_load_state("networkidle")
 
     def click_add_link(self) -> None:
         """Wait for the Add Link button to be visible, then click it (first match)."""
