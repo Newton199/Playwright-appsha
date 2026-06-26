@@ -103,29 +103,124 @@ class AddLinkPage:
 
     def fill_title(self, title: str) -> None:
         """Fill in the title field."""
-        title_xpath = "//*[@id=\"_r_h8_-form-item\"]"
-        self.page.locator(f"xpath={title_xpath}").fill(title)
-        print(f"✓ Filled title: {title}")
+        # Try multiple selectors for the title field
+        selectors = [
+            "//*[@id=\"_r_h8_-form-item\"]",
+            "input[placeholder*='Title']",
+            "input[placeholder*='title']",
+            "input[name*='title']",
+            "input[type='text']:first-of-type",
+            "//input[@type='text'][1]"
+        ]
+        
+        filled = False
+        for selector in selectors:
+            try:
+                locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
+                if locator.count() > 0:
+                    locator.first.wait_for(state="visible", timeout=5000)
+                    locator.first.fill(title)
+                    print(f"✓ Filled title: {title} (using selector: {selector})")
+                    filled = True
+                    break
+            except Exception as e:
+                print(f"  Selector '{selector}' failed: {str(e)[:50]}")
+                continue
+        
+        if not filled:
+            print("❌ Could not find title field!")
+            self.page.screenshot(path="title_field_debug.png")
+            raise Exception("Title field not found - screenshot saved as title_field_debug.png")
 
     def fill_url(self, url: str) -> None:
         """Fill in the URL field."""
-        url_xpath = "//*[@id=\"_r_h9_-form-item\"]"
-        self.page.locator(f"xpath={url_xpath}").fill(url)
-        print(f"✓ Filled URL: {url}")
+        # Try multiple selectors for the URL field
+        selectors = [
+            "//*[@id=\"_r_h9_-form-item\"]",
+            "input[placeholder*='URL']",
+            "input[placeholder*='url']",
+            "input[name*='url']",
+            "input[type='url']",
+            "input[type='text']:nth-of-type(2)",
+            "//input[@type='text'][2]"
+        ]
+        
+        filled = False
+        for selector in selectors:
+            try:
+                locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
+                if locator.count() > 0:
+                    locator.first.wait_for(state="visible", timeout=5000)
+                    locator.first.fill(url)
+                    print(f"✓ Filled URL: {url} (using selector: {selector})")
+                    filled = True
+                    break
+            except Exception as e:
+                print(f"  Selector '{selector}' failed: {str(e)[:50]}")
+                continue
+        
+        if not filled:
+            print("❌ Could not find URL field!")
+            self.page.screenshot(path="url_field_debug.png")
+            raise Exception("URL field not found - screenshot saved as url_field_debug.png")
 
     def select_icon(self) -> None:
         """Click on the icon selector."""
-        icon_xpath = "//*[@id=\"radix-_r_h7_\"]/div/div/div/div/div[3]/div/div/div/div/div/div/div[2]/img"
-        self.page.locator(f"xpath={icon_xpath}").click()
-        self.page.wait_for_load_state("networkidle")
-        print("✓ Selected icon")
+        icon_xpaths = [
+            "//*[@id=\"radix-_r_h7_\"]/div/div/div/div/div[3]/div/div/div/div/div/div/div[2]/img",
+            "//img[@role='img']",
+            "//button[contains(@aria-label, 'icon')]",
+            "img[alt*='icon']"
+        ]
+        
+        clicked = False
+        for xpath in icon_xpaths:
+            try:
+                locator = self.page.locator(f"xpath={xpath}" if xpath.startswith("/") else xpath)
+                if locator.count() > 0:
+                    locator.first.wait_for(state="visible", timeout=5000)
+                    locator.first.click()
+                    self.page.wait_for_load_state("networkidle")
+                    print(f"✓ Selected icon (using selector: {xpath})")
+                    clicked = True
+                    break
+            except Exception as e:
+                print(f"  Icon selector '{xpath}' failed: {str(e)[:50]}")
+                continue
+        
+        if not clicked:
+            print("⚠ Could not find icon selector (skipping)")
 
     def save_link(self) -> None:
         """Click on the save button."""
-        save_button_xpath = "/html/body/div[2]/main/div/div[2]/div/form/div[3]/button[2]"
-        self.page.locator(f"xpath={save_button_xpath}").click()
-        self.page.wait_for_load_state("networkidle")
-        print("✓ Clicked save button")
+        save_selectors = [
+            "/html/body/div[2]/main/div/div[2]/div/form/div[3]/button[2]",
+            "button:has-text('Save')",
+            "button[type='submit']",
+            "//button[contains(text(), 'Save')]",
+            "//button[contains(text(), 'Create')]",
+            "//button[2]"
+        ]
+        
+        clicked = False
+        for selector in save_selectors:
+            try:
+                locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
+                if locator.count() > 0:
+                    locator.first.wait_for(state="visible", timeout=5000)
+                    locator.first.click()
+                    self.page.wait_for_load_state("networkidle")
+                    print(f"✓ Clicked save button (using selector: {selector})")
+                    clicked = True
+                    break
+            except Exception as e:
+                print(f"  Save selector '{selector}' failed: {str(e)[:50]}")
+                continue
+        
+        if not clicked:
+            print("❌ Could not find save button!")
+            self.page.screenshot(path="save_button_debug.png")
+            raise Exception("Save button not found - screenshot saved as save_button_debug.png")
 
     def add_link(self, title: str, url: str) -> None:
         """Complete automation: add a link with the given title and URL."""
@@ -170,7 +265,7 @@ def automate_add_link():
             print(f"✓ Navigated to: {page.url}\n")
 
             # Step 4: Add the link
-            add_link_page.add_link(title="hello", url="www.appsha.com")
+            add_link_page.add_link(title="helllo", url="https://appsha.com/")
 
             # Step 5: Wait to see result
             page.wait_for_load_state("networkidle")
