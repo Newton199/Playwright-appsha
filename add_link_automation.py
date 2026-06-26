@@ -100,7 +100,7 @@ class AddLinkPage:
         
         try:
             # Use exact selector for title field
-            title_selector = "#_r_13u_-form-item"
+            title_selector = "#_r_24f_-form-item"
             locator = self.page.locator(title_selector)
             
             locator.scroll_into_view_if_needed()
@@ -118,7 +118,7 @@ class AddLinkPage:
         
         try:
             # Use exact selector for URL field
-            url_selector = "#_r_13v_-form-item"
+            url_selector = "#_r_24g_-form-item"
             locator = self.page.locator(url_selector)
             
             locator.scroll_into_view_if_needed()
