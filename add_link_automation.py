@@ -93,38 +93,62 @@ class AddLinkPage:
         self.page.goto("https://staging.appsha.com/u/profiles/zubdkqm/links/add-link/link")
         self.page.wait_for_load_state("networkidle")
         print(f"✓ Navigated to: {self.page.url}\n")
+        
+        # Wait for form to load - look for any input field
+        print("⏳ Waiting for form to load...")
+        try:
+            self.page.locator("input[type='text']").first.wait_for(state="attached", timeout=10000)
+            print("✓ Form loaded successfully\n")
+        except:
+            print("⚠ Form elements not found immediately, continuing anyway...\n")
 
     def fill_title(self, title: str) -> None:
-        """Fill in the title field using the exact selector."""
+        """Fill in the title field - uses position-based detection."""
         print(f"📝 Filling title: '{title}'")
         
         try:
-            # Use exact selector for title field
-            title_selector = "#_r_24f_-form-item"
-            locator = self.page.locator(title_selector)
+            # Get all text inputs
+            text_inputs = self.page.locator("input[type='text']")
+            count = text_inputs.count()
             
-            locator.scroll_into_view_if_needed()
-            locator.wait_for(state="visible", timeout=5000)
-            locator.fill(title)
-            print(f"✓ Title filled successfully\n")
+            if count == 0:
+                print(f"❌ No text input fields found on page!")
+                self.page.screenshot(path="form_debug.png")
+                raise Exception("No text input fields found - screenshot saved as form_debug.png")
+            
+            print(f"   Found {count} text input field(s)")
+            
+            # Fill the first text input (title)
+            first_input = text_inputs.nth(0)
+            first_input.fill(title)
+            print(f"✓ Title filled successfully (1st input field)\n")
+            
         except Exception as e:
             print(f"❌ Failed to fill title: {str(e)}\n")
             self.page.screenshot(path="title_fill_error.png")
             raise
 
     def fill_url(self, url: str) -> None:
-        """Fill in the URL field using the exact selector."""
+        """Fill in the URL field - uses position-based detection."""
         print(f"📝 Filling URL: '{url}'")
         
         try:
-            # Use exact selector for URL field
-            url_selector = "#_r_24g_-form-item"
-            locator = self.page.locator(url_selector)
+            # Get all text inputs
+            text_inputs = self.page.locator("input[type='text']")
+            count = text_inputs.count()
             
-            locator.scroll_into_view_if_needed()
-            locator.wait_for(state="visible", timeout=5000)
-            locator.fill(url)
-            print(f"✓ URL filled successfully\n")
+            if count < 2:
+                print(f"❌ Expected at least 2 text input fields, but found {count}!")
+                self.page.screenshot(path="form_debug.png")
+                raise Exception(f"Not enough input fields - found {count}, expected 2+")
+            
+            print(f"   Found {count} text input field(s)")
+            
+            # Fill the second text input (URL)
+            second_input = text_inputs.nth(1)
+            second_input.fill(url)
+            print(f"✓ URL filled successfully (2nd input field)\n")
+            
         except Exception as e:
             print(f"❌ Failed to fill URL: {str(e)}\n")
             self.page.screenshot(path="url_fill_error.png")
@@ -139,74 +163,52 @@ class AddLinkPage:
             "//button[contains(@aria-label, 'icon')]",
             "img[alt*='icon']",
             "//img[contains(@class, 'cursor')]",
+            "//button[contains(@class, 'bg-white')]//img",
             "//img",
         ]
         
         clicked = False
         for selector in icon_selectors:
             try:
-                locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
-                if locator.count() > 0:
-                    locator.first.wait_for(state="visible", timeout=3000)
-                    locator.first.click()
-                    self.page.wait_for_load_state("networkidle")
+                locator = self.page.locator(f"xpath={selector}")
+                count = locator.count()
+                
+                if count > 0:
+                    # Try to click the first matching icon
+                    locator.nth(0).click(timeout=5000)
                     print(f"✓ Icon selected\n")
                     clicked = True
                     break
-            except Exception as e:
+            except:
                 continue
         
         if not clicked:
             print("⚠ Icon selector not found (continuing anyway)\n")
 
     def save_link(self) -> None:
-        """Click on the save button using the exact selector provided."""
+        """Click on the save button."""
         print("💾 Saving link...")
         
         try:
-            # Use the exact selector provided for save button
-            save_selector = "body > div.group\\/sidebar-wrapper.flex.min-h-svh.has-\\[\\[data-variant\\=inset\\]\\]\\:bg-sidebar.w-full > main > div > div.m-0.sm\\:m-6.xl\\:max-w-\\[600px\\].xl2\\:max-w-\\[690px\\].\\32 xl\\:max-w-\\[800px\\].min-\\[2000px\\]\\:max-w-\\[1000px\\] > div > form > div.flex.w-full.items-center.justify-end.gap-2 > button.inline-flex.items-center.hover\\:shadow-sm.justify-center.gap-2.whitespace-nowrap.ring-offset-background.transition-all.focus-visible\\:outline-none.focus-visible\\:ring-2.focus-visible\\:ring-ring.focus-visible\\:ring-offset-2.disabled\\:pointer-events-none.disabled\\:opacity-50.active\\:scale-95.\\[\\&_svg\\]\\:pointer-events-none.\\[\\&_svg\\]\\:size-4.\\[\\&_svg\\]\\:shrink-0.bg-primary.hover\\:bg-blue-800.h-10.px-6.py-3.w-fit.rounded-\\[4px\\].text-sm.font-semibold.text-white.md\\:text-base.md\\:font-bold"
+            # Try to find save button by text content
+            save_button = self.page.locator("//button[contains(text(), 'Save') or contains(text(), 'Create') or contains(text(), 'Add')]").first
             
-            locator = self.page.locator(save_selector)
-            locator.scroll_into_view_if_needed()
-            locator.wait_for(state="visible", timeout=5000)
-            locator.click()
+            if save_button.count() == 0:
+                # Fallback: try the last button in the form
+                form_buttons = self.page.locator("form button")
+                if form_buttons.count() > 0:
+                    save_button = form_buttons.nth(form_buttons.count() - 1)
+                else:
+                    raise Exception("No buttons found on form")
+            
+            save_button.click(timeout=5000)
             self.page.wait_for_load_state("networkidle")
             print(f"✓ Link saved successfully\n")
             
         except Exception as e:
-            print(f"❌ Failed to save with exact selector: {str(e)[:80]}\n")
-            
-            # Try fallback selectors
-            fallback_selectors = [
-                "button[type='submit']",
-                "//button[contains(text(), 'Save')]",
-                "//button[contains(text(), 'Create')]",
-                "form button:last-of-type",
-                "//form//button[last()]",
-            ]
-            
-            clicked = False
-            for selector in fallback_selectors:
-                try:
-                    locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
-                    if locator.count() > 0:
-                        btn = locator.first
-                        btn_text = btn.text_content()
-                        btn.scroll_into_view_if_needed()
-                        btn.wait_for(state="visible", timeout=5000)
-                        btn.click()
-                        self.page.wait_for_load_state("networkidle")
-                        print(f"✓ Link saved with fallback selector\n")
-                        clicked = True
-                        break
-                except:
-                    continue
-            
-            if not clicked:
-                print("❌ Could not find save button!")
-                self.page.screenshot(path="save_button_debug.png")
-                raise Exception("Save button not found")
+            print(f"❌ Failed to save: {str(e)}\n")
+            self.page.screenshot(path="save_button_error.png")
+            raise
 
     def add_link(self, title: str, url: str) -> None:
         """Complete automation: add a link with the given title and URL."""
