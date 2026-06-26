@@ -1,5 +1,5 @@
 """
-AddLinkPage page object for the Appsha staging site.
+AddLinkPage page object for the Appsha staging site with Login.
 
 Encapsulates all interactions and state inspection on the add-link page at
 .../profiles/{id}/links/add-link, exposing per-feature visibility, enabled,
@@ -9,8 +9,14 @@ No time.sleep() calls are used — all waits are expressed via Playwright APIs.
 """
 
 from playwright.sync_api import Page, sync_playwright
+from pages.login_page import LoginPage
 from appsha_selectors import FEATURE_SELECTORS, UPGRADE_PROMPT_SELECTORS
 from models import FeatureState, FeatureStatus
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 FEATURES = [
     "normal_link",
@@ -20,6 +26,10 @@ FEATURES = [
     "highlight",
     "analytics",
 ]
+
+# Credentials
+EMAIL = os.environ.get("APPSHA_EMAIL", "newton.appsha@gmail.com")
+PASSWORD = os.environ.get("APPSHA_PASSWORD", "Newton@#26")
 
 
 class AddLinkPage:
@@ -129,31 +139,42 @@ class AddLinkPage:
 
 
 def automate_add_link():
-    """Main automation function."""
+    """Main automation function with login."""
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
 
         try:
             print("🚀 Launching browser...\n")
+            
+            # Step 1: Login
+            print("📝 Logging in...\n")
+            login_page = LoginPage(page)
+            login_page.login(EMAIL, PASSWORD)
+            print(f"✓ Successfully logged in with email: {EMAIL}")
+            print(f"✓ Current URL: {page.url}\n")
+            
+            # Step 2: Navigate to links page
+            print("🔗 Navigating to links page...\n")
             page.goto("https://staging.appsha.com/u/profiles/zubdkqm/links")
             page.wait_for_load_state("networkidle")
 
             # Create AddLinkPage instance
             add_link_page = AddLinkPage(page)
 
-            # Click add link button
+            # Step 3: Click add link button
             add_link_page.click_add_link_button()
 
             # Verify navigation
-            page.wait_for_url("**/add-link")
+            page.wait_for_url("**/add-link", timeout=10000)
             print(f"✓ Navigated to: {page.url}\n")
 
-            # Add the link
+            # Step 4: Add the link
             add_link_page.add_link(title="hello", url="www.appsha.com")
 
-            # Wait to see result
+            # Step 5: Wait to see result
             page.wait_for_load_state("networkidle")
+            print(f"✓ Final URL: {page.url}")
 
         except Exception as e:
             print(f"\n❌ Error occurred: {str(e)}\n")
@@ -162,7 +183,7 @@ def automate_add_link():
             raise
         finally:
             browser.close()
-            print("🔒 Browser closed")
+            print("\n🔒 Browser closed")
 
 
 if __name__ == "__main__":
