@@ -86,6 +86,59 @@ class AddLinkPage:
         assert len(states) == 6, f"Expected 6 feature states, got {len(states)}"
         return states
 
+    def inspect_page_elements(self) -> None:
+        """Debug function: inspect all form elements on the page."""
+        print("\n" + "="*60)
+        print("🔍 INSPECTING PAGE ELEMENTS")
+        print("="*60 + "\n")
+        
+        # Get all input fields
+        inputs = self.page.locator("input").all()
+        print(f"📝 Found {len(inputs)} input fields:")
+        for i, inp in enumerate(inputs):
+            try:
+                input_id = inp.get_attribute("id")
+                input_name = inp.get_attribute("name")
+                input_type = inp.get_attribute("type")
+                input_placeholder = inp.get_attribute("placeholder")
+                print(f"  [{i}] ID: {input_id} | Name: {input_name} | Type: {input_type} | Placeholder: {input_placeholder}")
+            except:
+                pass
+        
+        # Get all text fields specifically
+        text_inputs = self.page.locator("input[type='text']").all()
+        print(f"\n📄 Found {len(text_inputs)} text input fields:")
+        for i, inp in enumerate(text_inputs):
+            try:
+                input_id = inp.get_attribute("id")
+                input_name = inp.get_attribute("name")
+                input_placeholder = inp.get_attribute("placeholder")
+                print(f"  [{i}] ID: {input_id} | Name: {input_name} | Placeholder: {input_placeholder}")
+            except:
+                pass
+        
+        # Get all form elements
+        forms = self.page.locator("form").all()
+        print(f"\n📋 Found {len(forms)} form(s)")
+        
+        # Get all buttons
+        buttons = self.page.locator("button").all()
+        print(f"\n🔘 Found {len(buttons)} buttons:")
+        for i, btn in enumerate(buttons):
+            try:
+                btn_text = btn.text_content()
+                btn_id = btn.get_attribute("id")
+                btn_type = btn.get_attribute("type")
+                print(f"  [{i}] Text: {btn_text.strip() if btn_text else 'N/A'} | ID: {btn_id} | Type: {btn_type}")
+            except:
+                pass
+        
+        # Get all divs with specific classes
+        divs = self.page.locator("div[class*='form']").all()
+        print(f"\n📦 Found {len(divs)} divs with 'form' in class")
+        
+        print("\n" + "="*60 + "\n")
+
     # Automation methods for adding a link
     def click_add_link_button(self) -> None:
         """Click on the 'Add Link' button."""
@@ -95,82 +148,102 @@ class AddLinkPage:
         print("✓ Clicked 'Add Link' button")
 
     def click_form_button(self) -> None:
-        """Click on the form button."""
-        form_button_xpath = "/html/body/div[2]/main/div/div[2]/div/div[1]/div[2]/button[1]"
-        self.page.locator(f"xpath={form_button_xpath}").click()
+        """Click on the form button or proceed to add link."""
+        # Try to find and click a button that opens the form
+        try:
+            form_button_xpath = "/html/body/div[2]/main/div/div[2]/div/div[1]/div[2]/button[1]"
+            self.page.locator(f"xpath={form_button_xpath}").click()
+            self.page.wait_for_load_state("networkidle")
+            print("✓ Clicked form button")
+        except:
+            print("⚠ Form button not found, continuing...")
+            self.page.wait_for_load_state("networkidle")
+
+    def navigate_to_add_link_form(self) -> None:
+        """Navigate to the add-link form page."""
+        print("🔗 Navigating to add-link form...\n")
+        self.page.goto("https://staging.appsha.com/u/profiles/zubdkqm/links/add-link/link")
         self.page.wait_for_load_state("networkidle")
-        print("✓ Clicked form button")
+        print(f"✓ Navigated to: {self.page.url}\n")
+        
+        # Inspect elements on this page
+        self.inspect_page_elements()
 
-    def fill_title(self, title: str) -> None:
-        """Fill in the title field."""
-        # Try multiple selectors for the title field
-        selectors = [
-            "//*[@id=\"_r_h8_-form-item\"]",
-            "input[placeholder*='Title']",
-            "input[placeholder*='title']",
-            "input[name*='title']",
-            "input[type='text']:first-of-type",
-            "//input[@type='text'][1]"
-        ]
+    def fill_title_smart(self, title: str) -> None:
+        """Fill in the title field - tries multiple approaches."""
+        print(f"📝 Attempting to fill title: '{title}'\n")
         
-        filled = False
-        for selector in selectors:
+        # Get all text inputs
+        text_inputs = self.page.locator("input[type='text']").all()
+        
+        if len(text_inputs) > 0:
+            # Try first text input
             try:
-                locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
-                if locator.count() > 0:
-                    locator.first.wait_for(state="visible", timeout=5000)
-                    locator.first.fill(title)
-                    print(f"✓ Filled title: {title} (using selector: {selector})")
-                    filled = True
-                    break
+                text_inputs[0].fill(title)
+                print(f"✓ Filled title using first text input")
+                return
             except Exception as e:
-                print(f"  Selector '{selector}' failed: {str(e)[:50]}")
-                continue
+                print(f"❌ First text input failed: {str(e)[:50]}")
         
-        if not filled:
-            print("❌ Could not find title field!")
-            self.page.screenshot(path="title_field_debug.png")
-            raise Exception("Title field not found - screenshot saved as title_field_debug.png")
+        # Try by ID containing common patterns
+        id_patterns = ["title", "name", "link-title", "subject"]
+        for pattern in id_patterns:
+            try:
+                locator = self.page.locator(f"input[id*='{pattern}']").first
+                if locator.count() > 0:
+                    locator.fill(title)
+                    print(f"✓ Filled title using ID pattern: '{pattern}'")
+                    return
+            except:
+                pass
+        
+        raise Exception(f"Could not fill title field - found {len(text_inputs)} text inputs but all failed")
 
-    def fill_url(self, url: str) -> None:
-        """Fill in the URL field."""
-        # Try multiple selectors for the URL field
-        selectors = [
-            "//*[@id=\"_r_h9_-form-item\"]",
-            "input[placeholder*='URL']",
-            "input[placeholder*='url']",
-            "input[name*='url']",
-            "input[type='url']",
-            "input[type='text']:nth-of-type(2)",
-            "//input[@type='text'][2]"
-        ]
+    def fill_url_smart(self, url: str) -> None:
+        """Fill in the URL field - tries multiple approaches."""
+        print(f"📝 Attempting to fill URL: '{url}'\n")
         
-        filled = False
-        for selector in selectors:
+        # Get all text inputs
+        text_inputs = self.page.locator("input[type='text']").all()
+        
+        if len(text_inputs) > 1:
+            # Try second text input
             try:
-                locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
-                if locator.count() > 0:
-                    locator.first.wait_for(state="visible", timeout=5000)
-                    locator.first.fill(url)
-                    print(f"✓ Filled URL: {url} (using selector: {selector})")
-                    filled = True
-                    break
+                text_inputs[1].fill(url)
+                print(f"✓ Filled URL using second text input")
+                return
             except Exception as e:
-                print(f"  Selector '{selector}' failed: {str(e)[:50]}")
-                continue
+                print(f"❌ Second text input failed: {str(e)[:50]}")
         
-        if not filled:
-            print("❌ Could not find URL field!")
-            self.page.screenshot(path="url_field_debug.png")
-            raise Exception("URL field not found - screenshot saved as url_field_debug.png")
+        # Try by ID containing common patterns
+        id_patterns = ["url", "link", "href", "website"]
+        for pattern in id_patterns:
+            try:
+                locator = self.page.locator(f"input[id*='{pattern}']").first
+                if locator.count() > 0:
+                    locator.fill(url)
+                    print(f"✓ Filled URL using ID pattern: '{pattern}'")
+                    return
+            except:
+                pass
+        
+        # Try URL input type
+        try:
+            self.page.locator("input[type='url']").first.fill(url)
+            print(f"✓ Filled URL using input[type='url']")
+            return
+        except:
+            pass
+        
+        raise Exception(f"Could not fill URL field - found {len(text_inputs)} text inputs but all failed")
 
     def select_icon(self) -> None:
         """Click on the icon selector."""
         icon_xpaths = [
-            "//*[@id=\"radix-_r_h7_\"]/div/div/div/div/div[3]/div/div/div/div/div/div/div[2]/img",
             "//img[@role='img']",
             "//button[contains(@aria-label, 'icon')]",
-            "img[alt*='icon']"
+            "img[alt*='icon']",
+            "//img",
         ]
         
         clicked = False
@@ -185,7 +258,7 @@ class AddLinkPage:
                     clicked = True
                     break
             except Exception as e:
-                print(f"  Icon selector '{xpath}' failed: {str(e)[:50]}")
+                print(f"  Icon selector '{xpath}' failed")
                 continue
         
         if not clicked:
@@ -194,12 +267,11 @@ class AddLinkPage:
     def save_link(self) -> None:
         """Click on the save button."""
         save_selectors = [
-            "/html/body/div[2]/main/div/div[2]/div/form/div[3]/button[2]",
-            "button:has-text('Save')",
             "button[type='submit']",
             "//button[contains(text(), 'Save')]",
             "//button[contains(text(), 'Create')]",
-            "//button[2]"
+            "//button[contains(text(), 'Add')]",
+            "//button",
         ]
         
         clicked = False
@@ -207,27 +279,30 @@ class AddLinkPage:
             try:
                 locator = self.page.locator(f"xpath={selector}" if selector.startswith("/") else selector)
                 if locator.count() > 0:
-                    locator.first.wait_for(state="visible", timeout=5000)
-                    locator.first.click()
-                    self.page.wait_for_load_state("networkidle")
-                    print(f"✓ Clicked save button (using selector: {selector})")
-                    clicked = True
-                    break
+                    # Get button text to be sure
+                    for btn in locator.all():
+                        btn_text = btn.text_content()
+                        if btn_text and any(word in btn_text.lower() for word in ['save', 'create', 'add', 'submit']):
+                            btn.click()
+                            self.page.wait_for_load_state("networkidle")
+                            print(f"✓ Clicked save button: '{btn_text.strip()}'")
+                            clicked = True
+                            break
+                    if clicked:
+                        break
             except Exception as e:
-                print(f"  Save selector '{selector}' failed: {str(e)[:50]}")
-                continue
+                pass
         
         if not clicked:
             print("❌ Could not find save button!")
             self.page.screenshot(path="save_button_debug.png")
-            raise Exception("Save button not found - screenshot saved as save_button_debug.png")
+            raise Exception("Save button not found")
 
     def add_link(self, title: str, url: str) -> None:
         """Complete automation: add a link with the given title and URL."""
         print("\n🔄 Starting link automation...\n")
-        self.click_form_button()
-        self.fill_title(title)
-        self.fill_url(url)
+        self.fill_title_smart(title)
+        self.fill_url_smart(url)
         self.select_icon()
         self.save_link()
         print("\n✅ Link added successfully!\n")
@@ -249,25 +324,16 @@ def automate_add_link():
             print(f"✓ Successfully logged in with email: {EMAIL}")
             print(f"✓ Current URL: {page.url}\n")
             
-            # Step 2: Navigate to links page
-            print("🔗 Navigating to links page...\n")
-            page.goto("https://staging.appsha.com/u/profiles/zubdkqm/links")
-            page.wait_for_load_state("networkidle")
-
             # Create AddLinkPage instance
             add_link_page = AddLinkPage(page)
 
-            # Step 3: Click add link button
-            add_link_page.click_add_link_button()
+            # Step 2: Navigate to add-link form directly
+            add_link_page.navigate_to_add_link_form()
 
-            # Verify navigation
-            page.wait_for_url("**/add-link", timeout=10000)
-            print(f"✓ Navigated to: {page.url}\n")
-
-            # Step 4: Add the link
+            # Step 3: Add the link
             add_link_page.add_link(title="helllo", url="https://appsha.com/")
 
-            # Step 5: Wait to see result
+            # Step 4: Wait to see result
             page.wait_for_load_state("networkidle")
             print(f"✓ Final URL: {page.url}")
 
